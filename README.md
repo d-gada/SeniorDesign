@@ -1,137 +1,156 @@
-# Team Names
+# Amazonian Bird MAE
 
-* **Team:** Dhriti Gada
-* **Advisor:** Anish Gupta
-
----
-
-# Professional Biography
-
-## Contact Information
-
-- Name: Dhriti Gada
-- Email: gadada@mail.uc.edu
-- LinkedIn (optional): https://www.linkedin.com/in/dhritigada/
-- GitHub (optional): https://github.com/d-gada
-
-## Co-op Work Experience
-
-### Job Title — Software Engineering Intern @ Kohl's
-**Dates of Employment:** May 2025 - August 2025
-
-- Technical Skills Used:  
-  Java, Spring boot 
-
-- Key Responsibilities & Contributions:  
-  Migrated a legacy Java 8 application to Java 17 and transitioned from the Play Framework to Spring Boot, refactoring 500+ classes and 4 key API endpoints that delivered personalized product recommendations to customers, improving system maintainability and performance.
-
-### Job Title — Embedded Software Co-op @ Nokia
-**Dates of Employment:** January 2025 - May 2025
-
-- Technical Skills Used:  
-  C, Python, Linux
-
-- Key Responsibilities & Contributions:  
-  Created a web page for tracking the status of testing boards.
-
-## Project Sought
-
-I have a broad set of skills that I can apply to a lot of different projects. My goal is to contribute meaningfully to a project where I can apply both my technical expertise and collaborative skills, while also learning from new challenges and technologies. I am currently taking a course about deep learning and I would be interested in applying those skills for my senior design project. 
-
-I do not currently have a team or an idea, but I am interested in the topics of climate change and transportation.
-
-# Project Abstract (≤400 characters)
-
-This project develops a machine‑learning application that identifies bird species from photos and audio recordings. By combining computer vision and sound classification, the system assists birdwatchers, researchers, and conservationists with accurate, real‑time identification.
+A **Masked Autoencoder** built on a BirdNET-compatible EfficientNet backbone,
+fine-tuned for Amazonian bird call classification.
 
 ---
 
-# Project Description (Assignment #2)
+## File overview
 
-We aim to create a mobile and web‑based application that ingests user‑submitted bird images and sound clips, processes them through deep‑learning classifiers, and outputs likely species matches. The project involves dataset collection, preprocessing, model training for both modalities, system deployment, and user‑centered interface design.
-
----
-
-# User Stories and Design Diagrams (Assignment #4)
-
-## User Stories
-
-* **As a birdwatcher**, I want to upload a photo to identify a bird quickly.
-* **As a researcher**, I want accurate species predictions from audio so I can survey populations.
-* **As a beginner**, I want explanations and confidence scores so I can learn bird traits.
-
-## Design Diagrams
-
-### Level 0 (Context Diagram)
-
-* **Users** provide photos/audio → **Bird ID Application** → returns **species predictions, confidence, info**.
-* External datasets provide training data.
-
-### Level 1 (Data Flow Diagram)
-
-1. **User Input** (photo/audio)
-2. **Preprocessing** (image resizing, spectrogram generation)
-3. **Model Inference** (CNN for images, audio classifier for sound)
-4. **Prediction Fusion** (optional combined ranking)
-5. **Results Display**
-
-### Level 2 (Detailed Component Diagram)
-
-* **Frontend:** Upload interface, feedback panel
-* **Backend API:** Input routing, validation
-* **Image Pipeline:** CNN model, feature extraction
-* **Audio Pipeline:** Spectrogram generator, audio classifier
-* **Fusion Module:** Aggregates predictions
-* **Database:** Species metadata, stored sightings
-
-## Description of Diagrams
-
-* **Context Diagram:** Shows system boundaries and external interactions.
-* **Data Flow Diagram:** Describes sequential processing of user input.
-* **Component Diagram:** Breaks down subsystems, their roles, and communication pathways.
+| File | Purpose |
+|---|---|
+| `preprocess.py` | Audio → mel spectrogram pipeline with augmentation |
+| `dataset.py` | PyTorch Datasets + DataLoader factories |
+| `model.py` | BirdMAE architecture + classifier head |
+| `train.py` | Two-phase training: MAE pre-train + supervised fine-tune |
+| `inference.py` | Single-file, batch, and saliency-map inference |
+| `config.json` | Hyperparameter config |
+| `requirements.txt` | Python dependencies |
 
 ---
 
-# Project Tasks and Timeline (Assignment #5–6)
+## Quick-start
 
-## Task List
+### 1. Install
 
-* Collect audio and image datasets
-* Preprocess images and audio clips
-* Train CNN and audio classifiers
-* Build multimodal fusion module
-* Develop frontend and backend
-* Deploy prototype
-* Evaluate performance and refine
+```bash
+pip install -r requirements.txt
+```
 
-## Timeline
+### 2. Prepare data
 
-* **Week 1–2:** Dataset collection & planning
-* **Week 3–4:** Preprocessing pipeline
-* **Week 5–6:** Modeling
-* **Week 7:** App development
-* **Week 8:** Testing & finalization
+```bash
+# Unlabelled Amazonian recordings (e.g. downloaded from xeno-canto)
+python preprocess.py \
+    --input_dir  /data/amazonian_audio \
+    --output_dir /data/processed \
+    --n_aug 2 \
+    --stats
+
+# For fine-tuning, your labelled manifest should look like:
+# {
+#   "samples": [{"path": "/data/processed/spectrograms/xyz.npy", "label": "Pipra_filicauda"}, ...],
+#   "classes": ["Lepidothrix_coronata", "Pipra_filicauda", ...]
+# }
+```
+
+### 3. Pre-train (MAE)
+
+```bash
+python train.py pretrain \
+    --manifest /data/processed/manifest.json \
+    --stats    /data/processed/stats.json \
+    --output   runs/pretrain \
+    --config   config.json
+```
+
+Plots are written to `runs/pretrain/plots/` after every epoch:
+- `pretrain_loss.png` — train vs. val MSE loss curve
+- `reconstruction_ep*.png` — visual reconstruction quality
+
+### 4. Fine-tune (classification)
+
+```bash
+python train.py finetune \
+    --manifest   /data/labelled_manifest.json \
+    --stats      /data/processed/stats.json \
+    --checkpoint runs/pretrain/checkpoints/best_model.pt \
+    --output     runs/finetune \
+    --config     config.json
+```
+
+Plots written to `runs/finetune/plots/`:
+- `finetune_curves.png` — loss + macro F1 curves (train/val)
+- `per_class_f1.png` — horizontal bar chart of per-species F1
+
+### 5. Inference
+
+```bash
+# Classify one file
+python inference.py \
+    --checkpoint runs/finetune/checkpoints/best_finetune.pt \
+    --classes    classes.json \
+    --stats      /data/processed/stats.json \
+    single \
+    --audio  field_recording.mp3 \
+    --output results.json
+
+# Batch classify a directory
+python inference.py \
+    --checkpoint runs/finetune/checkpoints/best_finetune.pt \
+    --classes    classes.json \
+    batch \
+    --input_dir /data/field_recordings \
+    --output    predictions.csv
+
+# Saliency map (which time-frequency regions drove the prediction)
+python inference.py \
+    --checkpoint runs/finetune/checkpoints/best_finetune.pt \
+    --classes    classes.json \
+    explain \
+    --audio  field_recording.mp3 \
+    --output saliency.png
+```
 
 ---
 
-# Concerns Essay (Assignment #7)
+## Architecture summary
 
-This project touches on ethical data acquisition, model fairness across species, and responsible deployment. Care is taken to avoid mislabeling endangered species and to use datasets ethically. The design emphasizes transparency, explainability, and privacy for user‑submitted media.
+```
+Audio (48 kHz)
+  └─▶ Mel Spectrogram (128 × 224)
+        └─▶ Patchify (16 × 16 patches → 112 tokens)
+              └─▶ BirdNET EfficientNet-B0 stem  (per-patch feature extraction)
+                    └─▶ Sinusoidal 2-D pos. embedding
+                          └─▶ Random masking (75 % of patches dropped)
+                                └─▶ 6-layer Transformer encoder
+                                      └─▶ 4-layer Transformer decoder
+                                            └─▶ MSE loss on masked patches
+                                                    (pre-training)
+                                            OR
+                                            └─▶ GAP → Linear head
+                                                    (fine-tuning)
+```
+
+---
+
+## Key design decisions
+
+| Choice | Rationale |
+|---|---|
+| **EfficientNet-B0 stem as patch encoder** | Reuses BirdNET pretrained weights; adapts to 1-channel spectrograms via weight-averaging of RGB stem |
+| **75 % mask ratio** | Forces the encoder to learn rich acoustic representations; higher than ViT defaults because spectrograms are sparser than natural images |
+| **Time-frequency 2-D positional encoding** | Encodes both spectral (frequency axis) and temporal structure explicitly |
+| **Two-stage LR in fine-tuning** | Low backbone LR (1e-5) + higher head LR (1e-4) prevents catastrophic forgetting of pretrained representations |
+| **Label smoothing (0.1)** | Improves calibration on rare Amazonian species with few recordings |
+| **Balanced sampling** | WeightedRandomSampler corrects the heavy class imbalance typical of biodiversity datasets |
 
 ---
 
-# PPT Slideshow (Assignment #8)
+## Data sources for Amazonian birds
+
+- [xeno-canto](https://xeno-canto.org) — community recordings, filterable by country / region
+- [Macaulay Library](https://www.macaulaylibrary.org) — Cornell Lab archive
+- [WikiAves](https://www.wikiaves.com.br) — Brazilian species focus
+- [INPA collections](http://www.inpa.gov.br) — Instituto Nacional de Pesquisas da Amazônia
 
 ---
 
-# Professional Biographies (Assignment #1)
+## Citation
 
-Short bios for each team member including background, skills, and roles.
+If you use this project, please cite:
 
----
-
-# Budget
-
-* **Expenses to date:** None.
-
----
+```
+He, K. et al. (2021). Masked Autoencoders Are Scalable Vision Learners.
+Kahl, S. et al. (2021). BirdNET: A deep learning solution for avian diversity monitoring.
+```

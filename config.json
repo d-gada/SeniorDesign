@@ -1,0 +1,39 @@
+{
+  "_comment": "BirdMAE config — edit to match your hardware and dataset size",
+
+  "MAE architecture": {
+    "img_h":           128,
+    "img_w":           224,
+    "patch_size":      16,
+    "embed_dim":       256,
+    "enc_depth":       6,
+    "dec_depth":       4,
+    "dec_dim":         128,
+    "n_heads_enc":     8,
+    "n_heads_dec":     4,
+    "mask_ratio":      0.75,
+    "freeze_backbone": false
+  },
+
+  "pre-training": {
+    "batch_size":    32,
+    "lr":            1e-4,
+    "weight_decay":  0.05,
+    "epochs":        100,
+    "warmup_epochs": 10,
+    "save_every":    10,
+    "num_workers":   0
+  },
+
+  "fine-tuning": {
+    "batch_size":         32,
+    "backbone_lr":        1e-5,
+    "head_lr":            1e-4,
+    "weight_decay":       0.05,
+    "finetune_epochs":    50,
+    "label_smoothing":    0.1,
+    "dropout":            0.3,
+    "balanced_sampling":  true,
+    "num_workers":        0
+  }
+}

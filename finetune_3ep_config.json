@@ -1,0 +1,15 @@
+{
+  "batch_size": 100,
+  "num_workers": 0,
+  "finetune_epochs": 20,
+  "balanced_sampling": true,
+  "label_smoothing": 0.1,
+  "dropout": 0.3,
+  "backbone_lr": 5e-4,
+  "head_lr": 5e-4,
+  "weight_decay": 0.05,
+  "lr_scheduler": "exponential",
+  "lr_decay_gamma": 0.9,
+  "lr_decay_step_size": 1,
+  "finetune_warmup_epochs": 0
+}

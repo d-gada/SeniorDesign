@@ -1,0 +1,30 @@
+# BirdMAE — Python dependencies
+# Install with: pip install -r requirements.txt
+
+# Core deep learning
+torch>=2.2.0
+torchaudio>=2.2.0
+torchvision>=0.17.0
+
+# Pretrained models (BirdNET-compatible EfficientNet)
+timm>=0.9.16
+
+# Audio processing
+librosa>=0.10.1
+soundfile>=0.12.1
+
+# Numerics / data
+numpy>=1.26.0
+scipy>=1.12.0
+
+# ML utilities
+scikit-learn>=1.4.0
+
+# Visualisation
+matplotlib>=3.8.0
+
+# Progress bars
+tqdm>=4.66.0
+
+# Optional: BirdNET Python wrapper (for comparison baselines)
+# birdnetlib>=0.9.0
