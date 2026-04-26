@@ -1,4 +1,4 @@
-# Amazonian Bird MAE
+# Amazonian Bird Identifier
 
 A **Masked Autoencoder** built on a BirdNET-compatible EfficientNet backbone,
 fine-tuned for Amazonian bird call classification.
@@ -137,20 +137,8 @@ Audio (48 kHz)
 
 ---
 
-## Data sources for Amazonian birds
+## Data sources
 
 - [xeno-canto](https://xeno-canto.org) — community recordings, filterable by country / region
-- [Macaulay Library](https://www.macaulaylibrary.org) — Cornell Lab archive
-- [WikiAves](https://www.wikiaves.com.br) — Brazilian species focus
-- [INPA collections](http://www.inpa.gov.br) — Instituto Nacional de Pesquisas da Amazônia
 
 ---
-
-## Citation
-
-If you use this project, please cite:
-
-```
-He, K. et al. (2021). Masked Autoencoders Are Scalable Vision Learners.
-Kahl, S. et al. (2021). BirdNET: A deep learning solution for avian diversity monitoring.
-```
